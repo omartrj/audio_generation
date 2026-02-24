@@ -72,7 +72,7 @@ def plot_trajectory(csv_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot 2D trajectory from gt.csv")
-    parser.add_argument("csv_path", help="Path to the gt.csv file")
+    parser.add_argument("--csv_path", help="Path to the gt.csv file")
     args = parser.parse_args()
     
     plot_trajectory(args.csv_path)
