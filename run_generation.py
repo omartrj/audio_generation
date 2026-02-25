@@ -1,10 +1,9 @@
 import os
-from core.trajectories import RandomWalkTrajectory, SinWaveTrajectory
-from core.simulator import Simulator
+from core import Simulator, RandomWalkTrajectory, SinWaveTrajectory
 
 NUM_SIMULATIONS = 10
-SIMULATION_TIME = 20.0  # seconds
-FS_CONTROL = 20  # Hz
+#FS_CONTROL = 20  # Hz
+FS_CONTROL = 50
 RANDOM_SEED = 420
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +21,6 @@ SCENARIO_WEIGHTS = {
 def main():
     sim_config = {
         'num_simulations': NUM_SIMULATIONS,
-        'simulation_time': SIMULATION_TIME,
         'fs_control': FS_CONTROL,
         'random_seed': RANDOM_SEED,
         'output_dir': OUTPUT_DIR
@@ -49,17 +47,17 @@ def main():
     )
 
     # Alternative configuration: Ambulance on a open area
-    #room_config = {
+    # room_config = {
     #     'width': 100.0,
     #     'length': 100.0,
-    #}
-    #
-    #trajectory = SinWaveTrajectory(
+    # }
+    
+    # trajectory = SinWaveTrajectory(
     #     room_config=room_config,
     #     min_speed_kmh=10.0,
     #     max_speed_kmh=80.0,
     #     min_distance_m=1.0
-    #)
+    # )
 
     simulator = Simulator(
         sim_config=sim_config,

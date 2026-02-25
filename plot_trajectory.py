@@ -21,10 +21,6 @@ def plot_trajectory(csv_path):
         print(f"Error: CSV must contain columns: {required_columns}")
         return
 
-    # Separate active and inactive points
-    active_points = df[df['is_active'] == 1]
-    inactive_points = df[df['is_active'] == 0]
-
     # Create the plot
     plt.figure(figsize=(10, 8))
     
@@ -52,9 +48,6 @@ def plot_trajectory(csv_path):
     # Plot microphones as blue dots
     if df_mics is not None:
         plt.scatter(df_mics['mx'], df_mics['my'], color='blue', s=80, marker='o', label='Microphones', zorder=6)
-        for _, row in df_mics.iterrows():
-            plt.annotate(row['mic_id'], (row['mx'], row['my']),
-                         textcoords='offset points', xytext=(6, 4), fontsize=8, color='blue')
     else:
         plt.scatter(0, 0, color='blue', s=150, marker='o', label='Listener (0,0)', zorder=6)
 
