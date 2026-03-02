@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import random
@@ -48,6 +49,34 @@ class Simulator:
         self.trajectory = trajectory
         self.scenario_weights = scenario_weights
         self.source_audio_path = source_audio_path
+        
+        # Load distractors into separate lists
+        self.distractor_metadata_path = os.path.join(
+            os.path.dirname(self.source_audio_path), "distractions", "meta.csv"
+        )
+        self.distractors = self._load_distractors(self.distractor_metadata_path)
+
+    def _load_distractors(self, metadata_path: str) -> dict:
+        distractors = {'street_pedestrian': [], 'street_traffic': []}
+        if not os.path.exists(metadata_path):
+            print(f"Warning: Distractor metadata not found at {metadata_path}")
+            return distractors
+            
+        base_dir = os.path.dirname(metadata_path)
+        with open(metadata_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f, delimiter='\t')
+            for row in reader:
+                label = row.get('scene_label')
+                # Ignore spaces on labels
+                if label:
+                    label = label.strip()
+                if label in distractors:
+                    audio_path = os.path.join(base_dir, row['filename'])
+                    if os.path.exists(audio_path):
+                        distractors[label].append(audio_path)
+        
+        print(f"Loaded {len(distractors['street_pedestrian'])} pedestrian and {len(distractors['street_traffic'])} traffic tracks.")
+        return distractors
 
     def run(self) -> None:
         src_signal, samplerate, simulation_time = self._load_audio()
@@ -77,6 +106,7 @@ class Simulator:
                     scenarios[i],
                     src_signal,
                     samplerate,
+                    self.distractors,
                 ): i
                 for i in range(self.sim_config["num_simulations"])
             }

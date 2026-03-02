@@ -7,6 +7,7 @@ import os
 import random
 
 import numpy as np
+import scipy.io.wavfile as wavfile
 from pyroadacoustics.pyroadacoustics.environment import Environment as SoundEnv
 
 from core.envelope import generate_envelope
@@ -22,6 +23,7 @@ def run_single_simulation(
     scenario: str,
     src_signal: np.ndarray,
     fs: int,
+    distractors: dict,
 ) -> None:
     """Run one acoustic simulation and write outputs to disk.
 
@@ -41,7 +43,10 @@ def run_single_simulation(
     temperature = random.uniform(0.0, 35.0)
     pressure    = random.uniform(0.95, 1.05)
     humidity    = random.uniform(20.0, 90.0)
-    snr         = random.uniform(20.0, 40.0)
+    
+    # A single SNR controls the overall volume of the background noise.
+    # We use a higher range (e.g., 20.0 to 35.0) to ensure the noise doesn't completely mask the siren.
+    snr         = random.uniform(20.0, 35.0)
 
     mic_positions = _jitter_mic_positions(base_mic_positions, random_offsets)
 
@@ -77,7 +82,55 @@ def run_single_simulation(
     )
     env.add_source(position=positions[0], signal=masked_signal)
     env.add_microphone_array(mic_positions)
-    env.set_background_noise(SNR=snr)
+    
+    distractor_signal = None
+    if distractors:
+        mixed_distractors = []
+        
+        # Load one track from each category
+        for category in ['street_pedestrian', 'street_traffic']:
+            # Check safely if the user has provided tracks for this category yet
+            if category in distractors and len(distractors[category]) > 0:
+                chosen_path = random.choice(distractors[category])
+                dist_fs, dist_data = wavfile.read(chosen_path)
+                
+                # Use only if sample rate matches to avoid artifacts
+                if dist_fs == fs:
+                    if dist_data.ndim > 1:
+                        dist_mono = dist_data[:, 0]
+                    else:
+                        dist_mono = dist_data
+                    
+                    # Ensure distractor covers the simulation length
+                    target_length = len(masked_signal)
+                    if len(dist_mono) < target_length:
+                        # Tile short tracks to fill the whole clip
+                        repeats = int(np.ceil(target_length / len(dist_mono)))
+                        dist_mono = np.tile(dist_mono, repeats)
+                    
+                    # Trim down if too long
+                    dist_mono = dist_mono[:target_length]
+                    mixed_distractors.append(dist_mono)
+        
+        if len(mixed_distractors) > 0:
+            # Sum the pedestrian and traffic tracks together
+            dist_combined = np.sum(mixed_distractors, axis=0)
+            
+            # Mix white gaussian noise with the combined distractors
+            # The environment scaling will adjust this combined signal's power for the req SNR
+            power_dist = np.mean(dist_combined.astype(float) ** 2)
+            if power_dist > 0:
+                # Create white noise with slightly lower power to mix evenly
+                #white_noise = np.random.randn(len(dist_combined)) * np.sqrt(power_dist) * 0.5
+                #distractor_signal = dist_combined + white_noise
+                # just now
+                distractor_signal = dist_combined
+            else:
+                white_noise = np.random.randn(len(masked_signal)) * 10.0
+                distractor_signal = white_noise
+
+    # Set background noise (uses custom signal if provided, else pure white noise by env logic)
+    env.set_background_noise(signal=distractor_signal, SNR=snr)
 
     # ---- step-by-step simulation loop --------------------------------------
     num_steps = int(simulation_time / dt)
@@ -91,6 +144,15 @@ def run_single_simulation(
 
     # ---- save results ------------------------------------------------------
     full_signal = np.concatenate(signals_list, axis=1)
+    
+    # Normalize volume while preserving relative distance regression scale.
+    # Instead of dynamically peaking each sequence independently (which destroys distance scale),
+    # we apply a strong static gain multiplier to the entire array.
+    STATIC_GAIN = 10.0
+    full_signal = full_signal * STATIC_GAIN
+    # Ensure values stay safely inside int16 bounds before saving
+    full_signal = np.clip(full_signal, -32767, 32767)
+    
     save_simulation_data(
         sim_output_dir, full_signal, fs,
         position_history, mic_positions, dt, sim_params, envelope,
