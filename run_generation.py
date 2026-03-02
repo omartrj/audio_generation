@@ -36,28 +36,28 @@ def main():
     }
 
     # Active configuration: Close-range human walking trajectory
-    room_config = {
-        'width': 6.0,
-        'length': 8.0,
-    }
-    trajectory = RandomWalkTrajectory(
-        room_config=room_config,
-        min_speed_kmh=3.0,
-        max_speed_kmh=6.0,
-    )
+    # room_config = {
+    #     'width': 6.0,
+    #     'length': 8.0,
+    # }
+    # trajectory = RandomWalkTrajectory(
+    #     room_config=room_config,
+    #     min_speed_kmh=3.0,
+    #     max_speed_kmh=6.0,
+    # )
 
     # Alternative configuration: Ambulance on a open area
-    # room_config = {
-    #     'width': 100.0,
-    #     'length': 100.0,
-    # }
+    room_config = {
+        'width': 40.0,
+        'length': 40.0,
+    }
     
-    # trajectory = SinWaveTrajectory(
-    #     room_config=room_config,
-    #     min_speed_kmh=10.0,
-    #     max_speed_kmh=80.0,
-    #     min_distance_m=1.0
-    # )
+    trajectory = SinWaveTrajectory(
+        room_config=room_config,
+        min_speed_kmh=10.0,
+        max_speed_kmh=70.0,
+        min_distance_m=3.0
+    )
 
     simulator = Simulator(
         sim_config=sim_config,
