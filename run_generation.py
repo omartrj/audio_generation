@@ -2,8 +2,7 @@ import os
 from core import Simulator, RandomWalkTrajectory, SinWaveTrajectory
 
 NUM_SIMULATIONS = 10
-#FS_CONTROL = 20  # Hz
-FS_CONTROL = 50
+FS_CONTROL = 20  # Hz
 RANDOM_SEED = 420
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
