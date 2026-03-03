@@ -86,31 +86,39 @@ def run_single_simulation(
     distractor_signal = None
     if distractors:
         mixed_distractors = []
+        chosen_names = []
         
         # Load one track from each category
         for category in ['street_pedestrian', 'street_traffic']:
-            # Check safely if the user has provided tracks for this category yet
-            if category in distractors and len(distractors[category]) > 0:
-                chosen_path = random.choice(distractors[category])
-                dist_fs, dist_data = wavfile.read(chosen_path)
+            # Enforce that every sequence MUST have both distractors to generate.
+            # If the user's folder is missing files for one category entirely, crash early.
+            if category not in distractors or len(distractors[category]) == 0:
+                raise ValueError(f"Imperative constraint failed: No audio tracks found for distractor category '{category}'. Cannot generate compliant sequence.")
                 
-                # Use only if sample rate matches to avoid artifacts
-                if dist_fs == fs:
-                    if dist_data.ndim > 1:
-                        dist_mono = dist_data[:, 0]
-                    else:
-                        dist_mono = dist_data
-                    
-                    # Ensure distractor covers the simulation length
-                    target_length = len(masked_signal)
-                    if len(dist_mono) < target_length:
-                        # Tile short tracks to fill the whole clip
-                        repeats = int(np.ceil(target_length / len(dist_mono)))
-                        dist_mono = np.tile(dist_mono, repeats)
-                    
-                    # Trim down if too long
-                    dist_mono = dist_mono[:target_length]
-                    mixed_distractors.append(dist_mono)
+            chosen_path = random.choice(distractors[category])
+            chosen_names.append(os.path.basename(chosen_path))
+            dist_fs, dist_data = wavfile.read(chosen_path)
+            
+            # Use only if sample rate matches to avoid artifacts
+            if dist_fs == fs:
+                if dist_data.ndim > 1:
+                    dist_mono = dist_data[:, 0]
+                else:
+                    dist_mono = dist_data
+                
+                # Ensure distractor covers the simulation length
+                target_length = len(masked_signal)
+                if len(dist_mono) < target_length:
+                    # Tile short tracks to fill the whole clip
+                    repeats = int(np.ceil(target_length / len(dist_mono)))
+                    dist_mono = np.tile(dist_mono, repeats)
+                
+                # Trim down if too long
+                dist_mono = dist_mono[:target_length]
+                mixed_distractors.append(dist_mono)
+        
+        # Log exactly which distractors are being layered for this sequence
+        print(f"[{seq_name}] Distractors -> Pedestrian: '{chosen_names[0]}' | Traffic: '{chosen_names[1]}'")
         
         if len(mixed_distractors) > 0:
             # Sum the pedestrian and traffic tracks together
