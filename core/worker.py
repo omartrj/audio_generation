@@ -45,7 +45,6 @@ def run_single_simulation(
     humidity    = random.uniform(20.0, 90.0)
     
     # A single SNR controls the overall volume of the background noise.
-    # We use a higher range (e.g., 20.0 to 35.0) to ensure the noise doesn't completely mask the siren.
     snr         = random.uniform(20.0, 35.0)
 
     mic_positions = _jitter_mic_positions(base_mic_positions, random_offsets)
@@ -153,8 +152,6 @@ def run_single_simulation(
     # ---- save results ------------------------------------------------------
     full_signal = np.concatenate(signals_list, axis=1)
     
-    # Normalize volume while preserving relative distance regression scale.
-    # Instead of dynamically peaking each sequence independently (which destroys distance scale),
     # we apply a strong static gain multiplier to the entire array.
     STATIC_GAIN = 10.0
     full_signal = full_signal * STATIC_GAIN
