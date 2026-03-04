@@ -88,7 +88,7 @@ def run_single_simulation(
         chosen_names = []
         
         # Load one track from each category
-        for category in ['street_pedestrian', 'street_traffic']:
+        for category in ['traffic_noise', 'speech']:
             # Enforce that every sequence MUST have both distractors to generate.
             # If the user's folder is missing files for one category entirely, crash early.
             if category not in distractors or len(distractors[category]) == 0:
@@ -117,7 +117,7 @@ def run_single_simulation(
                 mixed_distractors.append(dist_mono)
         
         # Log exactly which distractors are being layered for this sequence
-        print(f"[{seq_name}] Distractors -> Pedestrian: '{chosen_names[0]}' | Traffic: '{chosen_names[1]}'")
+        print(f"[{seq_name}] Distractors -> Traffic: '{chosen_names[0]}' | Speech: '{chosen_names[1]}'")
         
         if len(mixed_distractors) > 0:
             # Sum the pedestrian and traffic tracks together

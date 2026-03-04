@@ -51,31 +51,29 @@ class Simulator:
         self.source_audio_path = source_audio_path
         
         # Load distractors into separate lists
-        self.distractor_metadata_path = os.path.join(
-            os.path.dirname(self.source_audio_path), "distractions", "meta.csv"
+        self.distractions_dir = os.path.join(
+            os.path.dirname(self.source_audio_path), "distractions"
         )
-        self.distractors = self._load_distractors(self.distractor_metadata_path)
+        self.distractors = self._load_distractors(self.distractions_dir)
 
-    def _load_distractors(self, metadata_path: str) -> dict:
-        distractors = {'street_pedestrian': [], 'street_traffic': []}
-        if not os.path.exists(metadata_path):
-            print(f"Warning: Distractor metadata not found at {metadata_path}")
-            return distractors
-            
-        base_dir = os.path.dirname(metadata_path)
-        with open(metadata_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f, delimiter='\t')
-            for row in reader:
-                label = row.get('scene_label')
-                # Ignore spaces on labels
-                if label:
-                    label = label.strip()
-                if label in distractors:
-                    audio_path = os.path.join(base_dir, row['filename'])
-                    if os.path.exists(audio_path):
-                        distractors[label].append(audio_path)
+    def _load_distractors(self, base_dir: str) -> dict:
+        distractors = {'traffic_noise': [], 'speech': []}
         
-        print(f"Loaded {len(distractors['street_pedestrian'])} pedestrian and {len(distractors['street_traffic'])} traffic tracks.")
+        for category in distractors.keys():
+            metadata_path = os.path.join(base_dir, category, "metadata.csv")
+            if not os.path.exists(metadata_path):
+                print(f"Warning: Distractor metadata not found at {metadata_path}")
+                continue
+                
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)  # Defaults to comma
+                for row in reader:
+                    audio_path = os.path.join(base_dir, category, row['filename'])
+                    if os.path.exists(audio_path):
+                        distractors[category].append(audio_path)
+            
+            print(f"Loaded {len(distractors[category])} {category} tracks.")
+            
         return distractors
 
     def run(self) -> None:
