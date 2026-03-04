@@ -68,7 +68,7 @@ class Simulator:
             with open(metadata_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)  # Defaults to comma
                 for row in reader:
-                    audio_path = os.path.join(base_dir, category, row['filename'])
+                    audio_path = os.path.join(base_dir, category, 'audio', row['filename'])
                     if os.path.exists(audio_path):
                         distractors[category].append(audio_path)
             
