@@ -84,16 +84,31 @@ class Simulator:
         src_signal, samplerate, simulation_time = self._load_audio()
         self.sim_config["simulation_time"] = simulation_time
         base_mic_positions = self._load_mic_config()
+        total_sims = self.sim_config["num_simulations"]
         scenarios = _build_scenario_list(
-            self.sim_config["num_simulations"],
+            total_sims,
             self.scenario_weights,
             self.sim_config["random_seed"],
         )
 
+        num_digits = len(str(total_sims - 1))
+        output_dir = self.sim_config["output_dir"]
+        missing_indices = []
+        for i in range(total_sims):
+            seq_name = f"seq{i:0{num_digits}d}"
+            gt_path = os.path.join(output_dir, seq_name, "gt.csv")
+            if not os.path.exists(gt_path):
+                missing_indices.append(i)
+
+        if not missing_indices:
+            print(f"All {total_sims} simulations are already present. Nothing to do.")
+            return
+
         dt = 1.0 / self.sim_config["fs_control"]
         max_workers = os.cpu_count()
         dist_str = ", ".join(f"{n}: {scenarios.count(n)}" for n in self.scenario_weights)
-        print(f"Starting {self.sim_config['num_simulations']} simulations on {max_workers} workers [{dist_str}]")
+        print(f"Starting/resuming {total_sims} simulations on {max_workers} workers [{dist_str}]")
+        print(f"Missing simulations to generate: {len(missing_indices)}")
         print(f"Simulation duration: {simulation_time:.2f}s (from audio file)")
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -111,10 +126,10 @@ class Simulator:
                     self.distractors,
                     self.enable_distractions,
                 ): i
-                for i in range(self.sim_config["num_simulations"])
+                for i in missing_indices
             }
 
-            with tqdm(total=self.sim_config["num_simulations"], unit="sim") as pbar:
+            with tqdm(total=len(missing_indices), unit="sim") as pbar:
                 for future in as_completed(futures):
                     future.result()
                     pbar.update(1)
