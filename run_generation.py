@@ -6,6 +6,7 @@ NUM_SIMULATIONS = 10
 FS_CONTROL = 20  # Hz
 RANDOM_SEED = 420
 ENABLE_DISTRACTIONS = True
+SPEECH_MAX_DIST_M = 10.0   # max distance of the speech walker from the mic array center (m)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "data")
@@ -21,13 +22,6 @@ SCENARIO_WEIGHTS = {
 }
 
 def main():
-    sim_config = {
-        'num_simulations': NUM_SIMULATIONS,
-        'fs_control': FS_CONTROL,
-        'random_seed': RANDOM_SEED,
-        'output_dir': OUTPUT_DIR
-    }
-
     mic_config = {
         "config_path": MIC_CONFIG_PATH,
         "random_offsets": {
@@ -62,6 +56,16 @@ def main():
     import numpy as np
     _mic_pts = np.array(list(_mic_data.values()))
     array_radius = float(np.max(np.hypot(_mic_pts[:, 0], _mic_pts[:, 1]))) + CHASSIS_MARGIN_M
+
+    sim_config = {
+        'num_simulations': NUM_SIMULATIONS,
+        'fs_control': FS_CONTROL,
+        'random_seed': RANDOM_SEED,
+        'output_dir': OUTPUT_DIR,
+        'room_config': room_config,
+        'array_radius': array_radius,
+        'speech_max_dist_m': SPEECH_MAX_DIST_M,
+    }
 
     trajectory = AmbulanceTrajectory(
         room_config=room_config,

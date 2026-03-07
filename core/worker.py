@@ -112,15 +112,16 @@ def run_single_simulation(
                 sp_mono = sp_mono[:target_length]
                 sp_signal_padded = np.concatenate([sp_mono, np.zeros(signal_interval)])
 
-                # Random walk confined to a small area around the microphones,
-                # but never passing through the mic array (exclusion radius 1.5 m).
-                speech_room = {'width': 8.0, 'length': 8.0}
+                # Random walk confined to a square of side 2×speech_max_dist_m
+                # centred on the mic array, but never entering the array footprint.
+                _r = sim_config.get("speech_max_dist_m", 5.0)
+                speech_room = {'width': 2.0 * _r, 'length': 2.0 * _r}
                 speech_traj = RandomWalkTrajectory(
                     room_config=speech_room,
-                    min_speed_kmh=2.0,
-                    max_speed_kmh=5.0,
+                    min_speed_kmh=3.0,
+                    max_speed_kmh=6.0,
                     person_height=1.7,
-                    exclude_center_radius=1.5,
+                    exclude_center_radius=sim_config.get("array_radius", 1.5),
                 ).generate(simulation_time, dt)
 
                 env_speech = SoundEnv(
