@@ -12,6 +12,7 @@ from pyroadacoustics.pyroadacoustics.environment import Environment as SoundEnv
 
 from core.envelope import generate_envelope
 from core.io import save_simulation_data
+from core.trajectories import RandomWalkTrajectory
 
 
 def run_single_simulation(
@@ -83,53 +84,61 @@ def run_single_simulation(
     env.add_source(position=positions[0], signal=masked_signal)
     env.add_microphone_array(mic_positions)
     
-    distractor_signal = None
+    env_speech = None
+    speech_traj = None
+
     if enable_distractions:
-        mixed_distractors = []
-        chosen_names = []
-        
-        # Load one track from each category
-        for category in ['traffic_noise', 'speech']:
-            # Enforce that every sequence MUST have both distractors to generate.
-            # If the user's folder is missing files for one category entirely, crash early.
-            if category not in distractors or len(distractors[category]) == 0:
-                raise ValueError(f"Imperative constraint failed: No audio tracks found for distractor category '{category}'. Cannot generate compliant sequence.")
-                
-            chosen_path = random.choice(distractors[category])
-            chosen_names.append(os.path.basename(chosen_path))
-            dist_fs, dist_data = wavfile.read(chosen_path)
-            
-            # Use only if sample rate matches to avoid artifacts
-            if dist_fs == fs:
-                if dist_data.ndim > 1:
-                    dist_mono = dist_data[:, 0]
-                else:
-                    dist_mono = dist_data
-                
-                # Ensure distractor covers the simulation length
-                target_length = len(masked_signal)
-                if len(dist_mono) < target_length:
-                    # Tile short tracks to fill the whole clip
-                    repeats = int(np.ceil(target_length / len(dist_mono)))
-                    dist_mono = np.tile(dist_mono, repeats)
-                
-                # Trim down if too long
-                dist_mono = dist_mono[:target_length]
-                mixed_distractors.append(dist_mono)
-        
-        # Log exactly which distractors are being layered for this sequence
-        # print(f"[{seq_name}] Distractors -> Traffic: '{chosen_names[0]}' | Speech: '{chosen_names[1]}'")
-        
-        if len(mixed_distractors) > 0:
-            dist_combined = np.sum(mixed_distractors, axis=0)
-            power_dist = np.mean(dist_combined.astype(float) ** 2)
-            if power_dist > 0:
-                distractor_signal = dist_combined
+        target_length = len(masked_signal)
 
-        if distractor_signal is not None:
-            env.set_background_noise(signal=distractor_signal, SNR=snr)
+        # 1. Traffic noise → background noise on the main environment
+        if distractors.get('traffic_noise'):
+            tr_path = random.choice(distractors['traffic_noise'])
+            tr_fs, tr_data = wavfile.read(tr_path)
+            if tr_fs == fs:
+                tr_mono = tr_data[:, 0].astype(float) if tr_data.ndim > 1 else tr_data.astype(float)
+                if len(tr_mono) < target_length:
+                    tr_mono = np.tile(tr_mono, int(np.ceil(target_length / len(tr_mono))))
+                tr_mono = tr_mono[:target_length]
+                env.set_background_noise(signal=tr_mono, SNR=snr)
 
-    # ---- step-by-step simulation loop --------------------------------------
+        # 2. Speech → second acoustic environment with a random walk near the mics
+        if distractors.get('speech'):
+            sp_path = random.choice(distractors['speech'])
+            sp_fs, sp_data = wavfile.read(sp_path)
+            if sp_fs == fs:
+                sp_mono = sp_data[:, 0].astype(float) if sp_data.ndim > 1 else sp_data.astype(float)
+                if len(sp_mono) < target_length:
+                    sp_mono = np.tile(sp_mono, int(np.ceil(target_length / len(sp_mono))))
+                sp_mono = sp_mono[:target_length]
+                sp_signal_padded = np.concatenate([sp_mono, np.zeros(signal_interval)])
+
+                # Random walk confined to a small area around the microphones,
+                # but never passing through the mic array (exclusion radius 1.5 m).
+                speech_room = {'width': 8.0, 'length': 8.0}
+                speech_traj = RandomWalkTrajectory(
+                    room_config=speech_room,
+                    min_speed_kmh=2.0,
+                    max_speed_kmh=5.0,
+                    person_height=1.7,
+                    exclude_center_radius=1.5,
+                ).generate(simulation_time, dt)
+
+                env_speech = SoundEnv(
+                    fs=fs,
+                    fs_update=sim_config["fs_control"],
+                    temperature=temperature,
+                    pressure=pressure,
+                    rel_humidity=humidity,
+                )
+                env_speech.set_simulation_params(
+                    interp_method="Sinc",
+                    include_reflection=False,
+                    include_air_absorption=True,
+                )
+                env_speech.add_source(position=speech_traj[0], signal=sp_signal_padded)
+                env_speech.add_microphone_array(mic_positions)
+
+    # ---- step-by-step simulation loop (main source) -----------------------
     num_steps = int(simulation_time / dt)
     signals_list     = [env.simulate(init=True)]
     position_history = [positions[0].copy()]
@@ -139,12 +148,19 @@ def run_single_simulation(
         signals_list.append(env.simulate())
         position_history.append(positions[step + 1])
 
+    # ---- step-by-step simulation loop (speech distractor) -----------------
+    speech_full = None
+    if env_speech is not None:
+        speech_signals_list = [env_speech.simulate(init=True)]
+        for step in range(num_steps):
+            env_speech.move_source(speech_traj[step + 1])
+            speech_signals_list.append(env_speech.simulate())
+        speech_full = np.concatenate(speech_signals_list, axis=1)
+
     # ---- save results ------------------------------------------------------
     full_signal = np.concatenate(signals_list, axis=1)
-    
-    # we apply a strong static gain multiplier to the entire array.
-    #STATIC_GAIN = 10.0
-    full_signal = full_signal
+    if speech_full is not None:
+        full_signal = full_signal + speech_full
     # Ensure values stay safely inside int16 bounds before saving
     full_signal = np.clip(full_signal, -32767, 32767)
     
