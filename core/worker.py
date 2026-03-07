@@ -167,6 +167,7 @@ def run_single_simulation(
     save_simulation_data(
         sim_output_dir, full_signal, fs,
         position_history, mic_positions, dt, sim_params, envelope,
+        speech_positions=speech_traj,
     )
 
 

@@ -15,6 +15,7 @@ def save_simulation_data(
     dt: float,
     sim_params: dict,
     envelope: np.ndarray,
+    speech_positions: np.ndarray | None = None,
 ) -> None:
     """Persist all outputs for a single simulation run.
 
@@ -29,6 +30,8 @@ def save_simulation_data(
     _save_ground_truth(output_dir, positions, dt, fs, envelope)
     _save_microphone_positions(output_dir, mic_positions)
     _save_params(output_dir, sim_params)
+    if speech_positions is not None:
+        _save_speech_trajectory(output_dir, speech_positions, dt)
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +80,15 @@ def _save_microphone_positions(output_dir: str, mic_positions: np.ndarray) -> No
         writer.writerow(["mic_id", "mx", "my", "mz"])
         for i, pos in enumerate(mic_positions):
             writer.writerow([f"mic_{i + 1}", f"{pos[0]:.2f}", f"{pos[1]:.2f}", f"{pos[2]:.2f}"])
+
+
+def _save_speech_trajectory(output_dir: str, positions: np.ndarray, dt: float) -> None:
+    speech_file = os.path.join(output_dir, "speech_trajectory.csv")
+    with open(speech_file, mode="w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["time_s", "px", "py"])
+        for step, pos in enumerate(positions):
+            writer.writerow([f"{step * dt:.2f}", f"{pos[0]:.3f}", f"{pos[1]:.3f}"])
 
 
 def _save_params(output_dir: str, sim_params: dict) -> None:

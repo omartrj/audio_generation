@@ -45,6 +45,17 @@ def plot_trajectory(csv_path):
     plt.scatter(df['sx'].iloc[0], df['sy'].iloc[0], color='green', s=100, marker='s', label='Start', zorder=5)
     plt.scatter(df['sx'].iloc[-1], df['sy'].iloc[-1], color='purple', s=100, marker='X', label='End', zorder=5)
 
+    # Plot speech distractor trajectory if available
+    speech_csv_path = os.path.join(os.path.dirname(csv_path), 'speech_trajectory.csv')
+    if os.path.exists(speech_csv_path):
+        df_speech = pd.read_csv(speech_csv_path)
+        plt.plot(df_speech['px'], df_speech['py'], color='orange', linestyle='-',
+                 linewidth=1.2, alpha=0.6, label='Speech walker')
+        plt.scatter(df_speech['px'].iloc[0], df_speech['py'].iloc[0],
+                    color='orange', s=60, marker='s', zorder=5)
+        plt.scatter(df_speech['px'].iloc[-1], df_speech['py'].iloc[-1],
+                    color='orange', s=60, marker='X', zorder=5)
+
     # Plot microphones as blue dots
     if df_mics is not None:
         plt.scatter(df_mics['mx'], df_mics['my'], color='blue', s=80, marker='o', label='Microphones', zorder=6)
