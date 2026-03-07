@@ -42,6 +42,7 @@ class Simulator:
         trajectory,
         scenario_weights: dict,
         source_audio_path: str,
+        enable_distractions: bool = True,
     ) -> None:
         self.sim_config = sim_config
         self.mic_config = mic_config
@@ -49,12 +50,15 @@ class Simulator:
         self.trajectory = trajectory
         self.scenario_weights = scenario_weights
         self.source_audio_path = source_audio_path
-        
-        # Load distractors into separate lists
-        self.distractions_dir = os.path.join(
-            os.path.dirname(self.source_audio_path), "distractions"
-        )
-        self.distractors = self._load_distractors(self.distractions_dir)
+        self.enable_distractions = enable_distractions
+
+        if enable_distractions:
+            distractions_dir = os.path.join(
+                os.path.dirname(self.source_audio_path), "distractions"
+            )
+            self.distractors = self._load_distractors(distractions_dir)
+        else:
+            self.distractors = {}
 
     def _load_distractors(self, base_dir: str) -> dict:
         distractors = {'traffic_noise': [], 'speech': []}
@@ -68,7 +72,7 @@ class Simulator:
             with open(metadata_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)  # Defaults to comma
                 for row in reader:
-                    audio_path = os.path.join(base_dir, category, 'audio', row['filename'])
+                    audio_path = os.path.join(base_dir, category, row['filename'])
                     if os.path.exists(audio_path):
                         distractors[category].append(audio_path)
             
@@ -105,6 +109,7 @@ class Simulator:
                     src_signal,
                     samplerate,
                     self.distractors,
+                    self.enable_distractions,
                 ): i
                 for i in range(self.sim_config["num_simulations"])
             }

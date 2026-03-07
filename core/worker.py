@@ -24,6 +24,7 @@ def run_single_simulation(
     src_signal: np.ndarray,
     fs: int,
     distractors: dict,
+    enable_distractions: bool = True,
 ) -> None:
     """Run one acoustic simulation and write outputs to disk.
 
@@ -83,7 +84,7 @@ def run_single_simulation(
     env.add_microphone_array(mic_positions)
     
     distractor_signal = None
-    if distractors:
+    if enable_distractions:
         mixed_distractors = []
         chosen_names = []
         
@@ -117,27 +118,16 @@ def run_single_simulation(
                 mixed_distractors.append(dist_mono)
         
         # Log exactly which distractors are being layered for this sequence
-        print(f"[{seq_name}] Distractors -> Traffic: '{chosen_names[0]}' | Speech: '{chosen_names[1]}'")
+        # print(f"[{seq_name}] Distractors -> Traffic: '{chosen_names[0]}' | Speech: '{chosen_names[1]}'")
         
         if len(mixed_distractors) > 0:
-            # Sum the pedestrian and traffic tracks together
             dist_combined = np.sum(mixed_distractors, axis=0)
-            
-            # Mix white gaussian noise with the combined distractors
-            # The environment scaling will adjust this combined signal's power for the req SNR
             power_dist = np.mean(dist_combined.astype(float) ** 2)
             if power_dist > 0:
-                # Create white noise with slightly lower power to mix evenly
-                #white_noise = np.random.randn(len(dist_combined)) * np.sqrt(power_dist) * 0.5
-                #distractor_signal = dist_combined + white_noise
-                # just now
                 distractor_signal = dist_combined
-            else:
-                white_noise = np.random.randn(len(masked_signal)) * 10.0
-                distractor_signal = white_noise
 
-    # Set background noise (uses custom signal if provided, else pure white noise by env logic)
-    env.set_background_noise(signal=distractor_signal, SNR=snr)
+        if distractor_signal is not None:
+            env.set_background_noise(signal=distractor_signal, SNR=snr)
 
     # ---- step-by-step simulation loop --------------------------------------
     num_steps = int(simulation_time / dt)
@@ -153,8 +143,8 @@ def run_single_simulation(
     full_signal = np.concatenate(signals_list, axis=1)
     
     # we apply a strong static gain multiplier to the entire array.
-    STATIC_GAIN = 10.0
-    full_signal = full_signal * STATIC_GAIN
+    #STATIC_GAIN = 10.0
+    full_signal = full_signal
     # Ensure values stay safely inside int16 bounds before saving
     full_signal = np.clip(full_signal, -32767, 32767)
     

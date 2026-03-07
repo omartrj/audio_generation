@@ -1,9 +1,10 @@
 import os
 from core import Simulator, RandomWalkTrajectory, SinWaveTrajectory
 
-NUM_SIMULATIONS = 10
+NUM_SIMULATIONS = 20
 FS_CONTROL = 20  # Hz
 RANDOM_SEED = 420
+ENABLE_DISTRACTIONS = False
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "data")
@@ -64,7 +65,8 @@ def main():
         room_config=room_config,
         trajectory=trajectory,
         scenario_weights=SCENARIO_WEIGHTS,
-        source_audio_path=SOUND_SOURCE_PATH
+        source_audio_path=SOUND_SOURCE_PATH,
+        enable_distractions=ENABLE_DISTRACTIONS,
     )
 
     simulator.run()
