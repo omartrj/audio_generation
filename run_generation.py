@@ -13,10 +13,11 @@ MIC_CONFIG_PATH = os.path.join(BASE_DIR, "configs", "warthog.json")
 SOUND_SOURCE_PATH = os.path.join(BASE_DIR, "sound", "siren_mono.wav")
 
 SCENARIO_WEIGHTS = {
-    'always_on': 0.35,
-    'turn_on': 0.25,
-    'turn_off': 0.25,
-    'interrupted': 0.15
+    'always_on':  0.25,
+    'always_off': 0.25,
+    'turn_on':    0.20,
+    'turn_off':   0.20,
+    'interrupted': 0.10,
 }
 
 def main():

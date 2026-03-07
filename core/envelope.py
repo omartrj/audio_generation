@@ -7,6 +7,7 @@ def generate_envelope(num_samples: int, fs: int, sim_duration: float, scenario: 
 
     Scenarios:
         always_on   - siren active for the entire simulation
+        always_off  - siren silent for the entire simulation
         turn_on     . siren starts silent, then activates mid-way
         turn_off    . siren active at first, then deactivates mid-way
         interrupted . siren is briefly silenced in the middle
@@ -26,6 +27,9 @@ def generate_envelope(num_samples: int, fs: int, sim_duration: float, scenario: 
 
     if scenario == "always_on":
         pass
+
+    elif scenario == "always_off":
+        envelope[:] = 0.0
 
     elif scenario == "turn_on":
         # siren activates between 20% and 65% of the sequence
