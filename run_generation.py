@@ -44,8 +44,8 @@ def main():
 
     # Alternative configuration: Ambulance on a open area
     room_config = {
-        'width': 60.0,
-        'length': 60.0,
+        'width': 50.0,
+        'length': 50.0,
     }
     
     # Compute the physical footprint radius of the mic array from the config,
