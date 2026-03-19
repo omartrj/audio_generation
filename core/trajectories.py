@@ -120,7 +120,7 @@ class AmbulanceTrajectory(Trajectory):
         # uniform ring, making the Doppler and level variations more diverse.
         num_wp = self.num_waypoints if self.num_waypoints is not None else random.randint(5, 9)
         sector = 2 * np.pi / num_wp
-        angle_offset = random.uniform(0, sector)
+        angle_offset = random.uniform(0, 2 * np.pi)
         r_near = max(self.min_distance_m * 1.5, max_r * 0.20)
         r_far  = max_r * 0.95
         waypoints = []
