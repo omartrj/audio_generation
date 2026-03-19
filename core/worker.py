@@ -49,6 +49,9 @@ def run_single_simulation(
     # A single SNR controls the overall volume of the background noise.
     snr         = random.uniform(20.0, 35.0)
 
+    # Random gain for the source signal
+    gain        = random.uniform(0.8, 5.0)
+
     mic_positions = _jitter_mic_positions(base_mic_positions, random_offsets)
 
     sim_params = {
@@ -57,6 +60,7 @@ def run_single_simulation(
         "pressure":    pressure,
         "humidity":    humidity,
         "snr":         snr,
+        "gain":        gain,
     }
 
     # ---- prepare source signal ---------------------------------------------
@@ -66,6 +70,7 @@ def run_single_simulation(
     signal_interval = int(fs / sim_config["fs_control"])
 
     envelope      = generate_envelope(total_samples, fs, simulation_time, scenario)
+    src_signal = src_signal * gain # apply random gain to the source signal before masking
     masked_signal = np.concatenate([src_signal * envelope, np.zeros(signal_interval)])
 
     # ---- acoustic environment ----------------------------------------------
