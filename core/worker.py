@@ -50,7 +50,9 @@ def run_single_simulation(
     snr         = random.uniform(20.0, 35.0)
 
     # Random gain for the source signal
-    gain        = random.uniform(0.8, 5.0)
+    #gain        = random.uniform(0.8, 5.0)
+    # Per ora gain fisso
+    gain        = 3.0
 
     mic_positions = _jitter_mic_positions(base_mic_positions, random_offsets)
 
